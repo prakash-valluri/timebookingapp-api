@@ -8,4 +8,5 @@ We are using **SAM** to create a tempalte and deploy the resultant *CloudFormati
 ## Development and deployment steps
 1. Install AWS CLI and SAM CLI.
 2. Create an AccessKey and Secret Access Key and use *aws configure* to create a profile in CLI. We use this profile to interact with AWS. Now any commands like *aws s3 ls* must work.
-3. Now its time to get working on SAM.
+3. Install SAM and verify it with *sam --version*
+4.
