@@ -21,3 +21,5 @@ We are using **SAM** to create a tempalte and deploy the resultant *CloudFormati
 sam build
 sam deploy --guided
 ```
+7. Some helpful commands are : 
+aws configure list
