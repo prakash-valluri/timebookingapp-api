@@ -66,7 +66,7 @@ Resources:
    Type: AWS::DynamoDB::Table
    Properties:
     TableName: Bookings
-    KeySchema: # Attributes that make up the primary key of the Table.
+    KeySchema: # Attributes that make up the primary key of the Table. Users Access this get their bookings.
       - AttributeName: "USERID"    # Year & Month
         KeyType: HASH
       - AttributeName: "BookingTime"  # Day & hr:min:ss
@@ -76,9 +76,23 @@ Resources:
         AttributeType: S
       - AttributeName: BookingTime
         AttributeType: S
+      - AttributeName: BookingDate
+        AttributeType: S
     ProvisionedThroughput:
       ReadCapacityUnits: 1
       WriteCapacityUnits: 1
+    GlobalSecondaryIndexes: # For admin to get the bookings for that day.
+      - IndexName: AllBookings
+        KeySchema:
+          - AttributeName: BookingDate
+            KeyType: HASH
+          - AttributeName: BookingTime
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

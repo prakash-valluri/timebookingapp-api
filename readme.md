@@ -32,3 +32,8 @@ sam deploy --guided
 ```
 7. Some helpful commands are : 
 aws configure list
+
+## Development in a new PC.
+1. git clone repo
+2. cd sam-app/booking and then install all NPM libs.
+3. cd.. to sam-app and then sam build and then sam deploy
