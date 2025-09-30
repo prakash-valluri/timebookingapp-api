@@ -10,7 +10,10 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
  *
  */
 
-export const saveBooking = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const booking = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    // Handle save booking
+    // Get bookings per user
+
     console.log('inside lambda function');
     try {
         return {

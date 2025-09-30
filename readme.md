@@ -1,9 +1,18 @@
 # This is the backend for booking time.
-We are using **SAM** to create a tempalte and deploy the resultant *CloudFormation* Stack to AWS.
+We are using **SAM** to create a template and deploy the resultant *CloudFormation* Stack to AWS.
 > We are planning for integrating payment gateway also.
-> We will be having Admin and user login in future. 
-> When admin logs in at the Front end all the bookings will be shown in a paginated way.
-> When a particular user logs in, Then only user bookings only will be shown.Token verification will be done in the backend to prevent data leaks.
+> We will be having Admin and user login in future.
+> When a particular user logs in, Then only user bookings only will be shown.JWT Token verification will be done in the backend to prevent data leaks.
+Note : DynamoDB Table design, This covers the primary access pattern of user logging in and retreiving data.
+      PK : USER#<USER_ID>
+      SK : <DATE_AND_TIME>
+
+> Secondary access pattern, When admin logs in at the Front end, all the bookings are to be retreived for that day.
+Note :To avoid cross partition queries in dynamoDB database its better to have a GSI added to the Main Table.
+      GSI PK : DATE#<VALUE_OF_DATE>
+      GSI SK : TIME#<VALUE_OF_TIME>
+Data Access Pattern : Admin would login and we show all the booking for that day. Clicking on the Right Chevron would present the bookings for the next day and so on.
+
 > Cancel booking.
 > EMail notifications for booking confirmation.
 > Reminders?

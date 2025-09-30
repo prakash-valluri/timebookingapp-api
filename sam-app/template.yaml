@@ -16,7 +16,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: booking/
-      Handler: app.saveBooking
+      Handler: app.booking
       Runtime: nodejs22.x
       Architectures:
       - x86_64
@@ -28,6 +28,57 @@ Resources:
         Sourcemap: true
         EntryPoints:
         - app.ts
+
+  SaveBookingFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: This is a Role for Lambda to talk to DynamoDB
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: AllowDynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: !GetAtt DynamoDBTable.Arn
+                # Resource: '*'
+        - PolicyName: AllowCWAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  DynamoDBTable:
+   Type: AWS::DynamoDB::Table
+   Properties:
+    TableName: Bookings
+    KeySchema: # Attributes that make up the primary key of the Table.
+      - AttributeName: "USERID"    # Year & Month
+        KeyType: HASH
+      - AttributeName: "BookingTime"  # Day & hr:min:ss
+        KeyType: RANGE
+    AttributeDefinitions: 
+      - AttributeName: USERID
+        AttributeType: S
+      - AttributeName: BookingTime
+        AttributeType: S
+    ProvisionedThroughput:
+      ReadCapacityUnits: 1
+      WriteCapacityUnits: 1
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
