@@ -3,7 +3,8 @@ We are using **SAM** to create a template and deploy the resultant *CloudFormati
 > We are planning for integrating payment gateway also.
 > We will be having Admin and user login in future.
 > When a particular user logs in, Then only user bookings only will be shown.JWT Token verification will be done in the backend to prevent data leaks.
-Note : DynamoDB Table design, This covers the primary access pattern of user logging in and retreiving data.
+Note : 
+> DynamoDB Table design, This covers the primary access pattern of user logging in and retreiving data.
       PK : USER#<USER_ID>
       SK : <DATE_AND_TIME>
 
@@ -11,7 +12,7 @@ Note : DynamoDB Table design, This covers the primary access pattern of user log
 Note :To avoid cross partition queries in dynamoDB database its better to have a GSI added to the Main Table.
       GSI PK : DATE#<VALUE_OF_DATE>
       GSI SK : TIME#<VALUE_OF_TIME>
-Data Access Pattern : Admin would login and we show all the booking for that day. Clicking on the Right Chevron would present the bookings for the next day and so on.
+Data Access Pattern : Admin would login and we show all the booking for that day. Clicking on the Right Chevron would present the bookings for the next day and so on. Advantage of this GSI design is that all the bookings will not be in a single partition.
 
 > Cancel booking.
 > EMail notifications for booking confirmation.

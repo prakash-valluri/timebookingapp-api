@@ -11,7 +11,11 @@ Globals:
     Tracing: Active
   Api:
     TracingEnabled: true
+
+
 Resources:
+  
+  # This Lambda function is used to save a booking. Get a Booking, Get all bookings by the user and get all bookings by the admin.
   SaveBookingFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -29,6 +33,7 @@ Resources:
         EntryPoints:
         - app.ts
 
+  # This 'LAMBDA Role' will be assumed by the Lambda service, and gets appropriate permissions to store the bookings into DynamoDB.
   SaveBookingFunctionExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -62,15 +67,39 @@ Resources:
                   - logs:PutLogEvents
                 Resource: '*'
 
+  SaveBookingFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt SaveBookingFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Join [ "", [ "arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", !Ref BookingApi, "/*/*/*" ] ] 
+
   DynamoDBTable:
    Type: AWS::DynamoDB::Table
    Properties:
     TableName: Bookings
-    KeySchema: # Attributes that make up the primary key of the Table. Users Access this get their bookings.
+    KeySchema: # Attributes that make up the primary key of the Table. Users will access this get their bookings.
       - AttributeName: "USERID"    # Year & Month
         KeyType: HASH
       - AttributeName: "BookingTime"  # Day & hr:min:ss
         KeyType: RANGE
+    ProvisionedThroughput:
+      ReadCapacityUnits: 1
+      WriteCapacityUnits: 1
+    GlobalSecondaryIndexes: # For admin to get the bookings for that day.
+      - IndexName: AllBookings
+        KeySchema:
+          - AttributeName: DDMMYY#BookingDate
+            KeyType: HASH
+          - AttributeName: BookingTime #Bookings get sorted by time
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
     AttributeDefinitions: 
       - AttributeName: USERID
         AttributeType: S
@@ -78,21 +107,81 @@ Resources:
         AttributeType: S
       - AttributeName: BookingDate
         AttributeType: S
-    ProvisionedThroughput:
-      ReadCapacityUnits: 1
-      WriteCapacityUnits: 1
-    GlobalSecondaryIndexes: # For admin to get the bookings for that day.
-      - IndexName: AllBookings
-        KeySchema:
-          - AttributeName: BookingDate
-            KeyType: HASH
-          - AttributeName: BookingTime
-            KeyType: RANGE
-        Projection:
-          ProjectionType: ALL
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
+
+  BookingApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      # OpenApiVersion: '2.0' # Prevents the default stage getting created - But SAM error
+      Body:
+        openapi: "3.0.1"
+        info:
+          title: "Booking"
+          version: "2024-04-11 00:36:47UTC"
+        paths:
+          /booking:
+            get:
+              responses:
+                default:
+                  description: "Default response for GET /booking"
+              x-amazon-apigateway-integration:
+                payloadFormatVersion: "2.0"
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub  "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SaveBookingFunction.Arn}/invocations"
+                connectionType: "INTERNET"
+            post:
+              responses:
+                default:
+                  description: "Default response for POST /booking"
+              x-amazon-apigateway-integration:
+                payloadFormatVersion: "2.0"
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri: !Sub  "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SaveBookingFunction.Arn}/invocations"
+                connectionType: "INTERNET"
+        x-amazon-apigateway-importexport-version: "1.0"
+
+  BookingApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref BookingApi
+      StageName: prod
+
+  BookingApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      # StageName: "prod"
+      RestApiId: !Ref BookingApi
+      DeploymentId: !Ref BookingApiDeployment
+
+  BookingAPIGWCustomDN:
+    Type: AWS::ApiGateway::DomainName
+    Properties: 
+      # As this is an Edge optimized endpoint, the cert has to be in us-east-1
+      CertificateArn: arn:aws:acm:us-east-1:797195599298:certificate/b4f1d9cf-887e-4c18-9942-93af5179012b
+      DomainName: booking-api.valluri-tech.com
+      EndpointConfiguration:
+        Types:
+          - EDGE
+      SecurityPolicy: TLS_1_2
+
+  PortfolioBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: booking-api.valluri-tech.com
+      RestApiId: !Ref BookingApi
+      Stage: prod
+
+  PortfolioBackEndRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Type: A
+      HostedZoneId: Z0084746MR97D8YF1WRE
+      Name: booking-api.valluri-tech.com
+      AliasTarget:
+        DNSName: !GetAtt BookingAPIGWCustomDN.DistributionDomainName
+        # EvaluateTargetHealth: Boolean
+        HostedZoneId: !GetAtt BookingAPIGWCustomDN.DistributionHostedZoneId
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
